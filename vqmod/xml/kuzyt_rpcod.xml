@@ -1,0 +1,272 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<modification>
+  <id>RP COD</id>
+  <version>1.0.0</version>
+  <vqmver>2.2.1</vqmver>
+  <author>KuzyT</author>
+<file name="admin/view/template/sale/order_info.tpl">
+ <operation>
+	<search position="replace"><![CDATA[<a href="<?php echo $invoice; ?>" target="_blank" data-toggle="tooltip" title="<?php echo $button_invoice_print; ?>" class="btn btn-info"><i class="fa fa-print"></i></a>]]></search>
+	<add><![CDATA[
+			<a href="<?php echo $rpcod; ?>" data-toggle="tooltip" title="RP COD" class="btn btn-info"><i class="fa fa-envelope-o"></i></a> <a href="<?php echo $invoice; ?>" target="_blank" data-toggle="tooltip" title="<?php echo $button_invoice_print; ?>" class="btn btn-info"><i class="fa fa-print"></i></a>
+	 ]]></add>
+ </operation>
+</file>
+<file name="admin/controller/sale/order.php">
+ <operation>
+	<search position="before"><![CDATA[public function invoice() {]]></search>
+	<add><![CDATA[
+	public function rpcod() {
+		$this->load->language('sale/rpcod');
+
+		$this->document->setTitle($this->language->get('heading_title'));
+		
+		$this->load->language('sale/rpcod');
+		
+		$data['heading_title'] = $this->language->get('heading_title');
+		
+		$data['text_send_from'] = $this->language->get('text_send_from');
+		$data['text_send_to'] = $this->language->get('text_send_to');
+		$data['text_loading'] = $this->language->get('text_loading');
+		$data['text_no_results'] = $this->language->get('text_no_results');
+		$data['text_none'] = $this->language->get('text_none');		
+		
+		$data['button_continue'] = $this->language->get('button_continue');
+		
+		$data['button_forms'] = $this->language->get('button_forms');
+		$data['button_back'] = $this->language->get('button_back');
+		
+		$data['entry_option'] = $this->language->get('entry_option');
+		$data['entry_name'] = $this->language->get('entry_name');
+		$data['entry_fio'] = $this->language->get('entry_fio');
+		$data['entry_postcode'] = $this->language->get('entry_postcode');
+		$data['entry_address'] = $this->language->get('entry_address');
+		$data['entry_doc'] = $this->language->get('entry_doc');
+		$data['entry_series'] = $this->language->get('entry_series');
+		$data['entry_number'] = $this->language->get('entry_number');
+		$data['entry_issue'] = $this->language->get('entry_issue');
+		$data['entry_issue_date'] = $this->language->get('entry_issue_date');
+		$data['entry_issue_year'] = $this->language->get('entry_issue_year');		
+		$data['entry_os'] = $this->language->get('entry_os');
+		$data['entry_cod'] = $this->language->get('entry_cod');		
+	
+		$this->load->model('extension/module');
+	
+		$module_data = array();
+		
+		$modules = $this->model_extension_module->getModulesByCode('rpcod');
+		$default = 0;
+		
+		foreach ($modules as $module) {
+			$id = $module['module_id'];
+			$cod = unserialize($module['setting']);	
+			if ($cod['default'] || ($default == 0)) $default = $id;
+			$module_data[$id] = array(
+				'code' 	=> $id,
+				'name' 	=> $module['name'],
+				'setting' 	=> $cod
+			);
+		}
+		
+		if ($default != 0) {
+			$cod = $module_data[$default]['setting'];	
+		} else {
+			$cod = array();
+		}
+	
+		if (!empty($cod)) {
+			$data['codprofile'] 	= $module_data[$default]['name'];
+			$data['codprofile_id'] 	= $module_data[$default]['code'];		
+			$data['fio'] 			= $cod['fio'];
+			$data['postcode'] 		= $cod['postcode'];
+			$data['address'] 		= $cod['address'];
+			$data['doc'] 			= $cod['doc'];
+			$data['series'] 		= $cod['series'];
+			$data['number'] 		= $cod['number'];
+			$data['issue'] 			= $cod['issue'];
+			$data['issue_date'] 	= $cod['issue_date'];
+			$data['issue_year'] 	= $cod['issue_year'];
+		} else {
+			$data['codprofile'] 	= '';
+			$data['codprofile_id'] 	= 0;		
+			$data['fio'] 			= '';
+			$data['postcode'] 		= '';
+			$data['address'] 		= '';
+			$data['doc'] 			= '';
+			$data['series'] 		= '';
+			$data['number'] 		= '';
+			$data['issue'] 			= '';
+			$data['issue_date'] 	= '';
+			$data['issue_year'] 	= '';			
+		}
+	
+		$this->load->model('sale/customer');
+
+		$data['text_form'] = $this->language->get('text_edit');
+
+		$data['token'] = $this->session->data['token'];
+
+		if (isset($this->error['warning'])) {
+			$data['error_warning'] = $this->error['warning'];
+		} else {
+			$data['error_warning'] = '';
+		}
+
+		$url = '';
+
+		if (isset($this->request->get['filter_order_id'])) {
+			$url .= '&filter_order_id=' . $this->request->get['filter_order_id'];
+		}
+
+		if (isset($this->request->get['filter_customer'])) {
+			$url .= '&filter_customer=' . urlencode(html_entity_decode($this->request->get['filter_customer'], ENT_QUOTES, 'UTF-8'));
+		}
+
+		if (isset($this->request->get['filter_order_status'])) {
+			$url .= '&filter_order_status=' . $this->request->get['filter_order_status'];
+		}
+
+		if (isset($this->request->get['filter_total'])) {
+			$url .= '&filter_total=' . $this->request->get['filter_total'];
+		}
+
+		if (isset($this->request->get['filter_date_added'])) {
+			$url .= '&filter_date_added=' . $this->request->get['filter_date_added'];
+		}
+
+		if (isset($this->request->get['filter_date_modified'])) {
+			$url .= '&filter_date_modified=' . $this->request->get['filter_date_modified'];
+		}
+
+		if (isset($this->request->get['sort'])) {
+			$url .= '&sort=' . $this->request->get['sort'];
+		}
+
+		if (isset($this->request->get['order'])) {
+			$url .= '&order=' . $this->request->get['order'];
+		}
+
+		if (isset($this->request->get['page'])) {
+			$url .= '&page=' . $this->request->get['page'];
+		}
+
+		$data['breadcrumbs'] = array();
+
+		$data['breadcrumbs'][] = array(
+			'text' => $this->language->get('text_home'),
+			'href' => $this->url->link('common/dashboard', 'token=' . $this->session->data['token'], 'SSL')
+		);
+
+		$data['breadcrumbs'][] = array(
+			'text' => $this->language->get('text_orders'),
+			'href' => $this->url->link('sale/order', 'token=' . $this->session->data['token'] . $url, 'SSL')
+		);
+		
+		$data['breadcrumbs'][] = array(
+			'text' => $this->language->get('text_order') . $this->request->get['order_id'],
+			'href' => $this->url->link('sale/order/info', 'token=' . $this->session->data['token'] . '&order_id=' . $this->request->get['order_id'], 'SSL')
+		);
+
+		$data['back'] = $this->url->link('sale/order/info', 'token=' . $this->session->data['token'] . '&order_id=' . $this->request->get['order_id'], 'SSL');
+		
+		$data['form_113_117'] = $this->url->link('module/rpcod/getform', 'token=' . $this->session->data['token'] . '&order_id=' . $this->request->get['order_id'], 'SSL');
+
+		$this->load->model('sale/order');
+		
+		if (isset($this->request->get['order_id']) && ($this->request->server['REQUEST_METHOD'] != 'POST')) {
+			$order_info = $this->model_sale_order->getOrder($this->request->get['order_id']);
+		}
+
+		if (!empty($order_info)) {
+			$data['order_id'] = $this->request->get['order_id'];			
+			$data['sfio'] = $order_info['shipping_lastname']. ' ' .$order_info['shipping_firstname'];
+			$data['spostcode'] = $order_info['shipping_postcode'];
+			$data['saddress'] = $order_info['shipping_address_1'];
+			if ($order_info['shipping_address_2'] != '') $data['saddress'] .= ', '.$order_info['shipping_address_2'];
+			$data['saddress'] .= ', г. '.$order_info['shipping_city'];
+			if (($order_info['shipping_zone'] != 'Москва') && ($order_info['shipping_zone'] != 'Санкт-Петербург'))	$data['saddress'] .= ', '.$order_info['shipping_zone'];
+			
+			$totals = $this->model_sale_order->getOrderTotals($data['order_id']);
+			$tot = '';
+			
+			foreach ($totals as $total) {
+				if ($total['code'] == 'total')	$tot = $total['value'];
+				$data['totals'][] = array(
+					'title' => $total['title'],
+					'text'  => $this->currency->format($total['value'], $order_info['currency_code'], $order_info['currency_value']),
+				);
+			}			
+			
+			$data['os'] = sprintf("%.02f", $tot);
+			$data['cod'] = sprintf("%.02f", $tot);
+		} else {
+			$data['order_id'] = 0;
+			
+			$data['sfio'] = '';
+			$data['spostcode'] = '';
+			$data['saddress'] = '';
+			$data['os'] = '';
+			$data['cod'] = '';
+		}
+
+		// Stores
+		$this->load->model('setting/store');
+
+		$data['stores'] = $this->model_setting_store->getStores();
+
+		// Customer Groups
+		$this->load->model('sale/customer_group');
+
+		$data['customer_groups'] = $this->model_sale_customer_group->getCustomerGroups();
+
+		// Custom Fields
+		$this->load->model('sale/custom_field');
+
+		$data['custom_fields'] = array();
+
+		$custom_fields = $this->model_sale_custom_field->getCustomFields();
+
+		foreach ($custom_fields as $custom_field) {
+			$data['custom_fields'][] = array(
+				'custom_field_id'    => $custom_field['custom_field_id'],
+				'custom_field_value' => $this->model_sale_custom_field->getCustomFieldValues($custom_field['custom_field_id']),
+				'name'               => $custom_field['name'],
+				'value'              => $custom_field['value'],
+				'type'               => $custom_field['type'],
+				'location'           => $custom_field['location']
+			);
+		}
+
+		$this->load->model('localisation/order_status');
+
+		$data['order_statuses'] = $this->model_localisation_order_status->getOrderStatuses();
+
+		$this->load->model('localisation/country');
+
+		$data['countries'] = $this->model_localisation_country->getCountries();
+
+		$data['voucher_min'] = $this->config->get('config_voucher_min');
+
+		$this->load->model('sale/voucher_theme');
+
+		$data['voucher_themes'] = $this->model_sale_voucher_theme->getVoucherThemes();
+
+		$data['header'] = $this->load->controller('common/header');
+		$data['column_left'] = $this->load->controller('common/column_left');
+		$data['footer'] = $this->load->controller('common/footer');
+
+		$this->response->setOutput($this->load->view('sale/rpcod.tpl', $data));
+
+	}
+		
+	 ]]></add>
+ </operation>
+ <operation>
+	<search position="after"><![CDATA[$data['invoice'] = $this->url->link('sale/order/invoice', 'token=' . $this->session->data['token'] . '&order_id=' . (int)$this->request->get['order_id'], 'SSL');]]></search>
+	<add><![CDATA[
+			$data['rpcod'] = $this->url->link('sale/order/rpcod', 'token=' . $this->session->data['token'] . '&order_id=' . (int)$this->request->get['order_id'], 'SSL');//KuzyT
+	 ]]></add>
+ </operation>
+</file>
+
+</modification>
